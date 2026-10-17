@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -8,7 +9,7 @@ from sqlalchemy import inspect, text
 
 from .admins import sincronizar_admins
 from .almacenamiento import USA_BLOB
-from .config import CORS_ORIGINS, FRONTEND_DIST, UPLOAD_DIR
+from .config import CORS_ORIGINS, EN_VERCEL, FRONTEND_DIST, UPLOAD_DIR
 from .database import Base, engine
 from .routers import auth, obras, usuarios
 
@@ -39,6 +40,15 @@ def inicializar() -> None:
 async def lifespan(_: FastAPI):
     inicializar()
     yield
+
+
+# En Vercel cada instancia se inicializa al cargarse el módulo (no depende de que el
+# entorno ejecute el "lifespan" de FastAPI). Si falla, se reintenta en el próximo arranque.
+if EN_VERCEL:
+    try:
+        inicializar()
+    except Exception:
+        logging.getLogger("uvicorn.error").exception("Error al inicializar la base de datos")
 
 
 app = FastAPI(title="Galería de Arte – Colegio San Marcos", lifespan=lifespan)

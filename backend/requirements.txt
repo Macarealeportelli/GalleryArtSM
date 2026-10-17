@@ -1,2 +1,9 @@
-# La lista de dependencias está en la raíz del proyecto (la usa Vercel)
--r ../requirements.txt
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy>=2.0
+python-multipart>=0.0.9
+python-dotenv>=1.0
+pyjwt>=2.8
+bcrypt>=4.1
+pillow>=10.4
+psycopg[binary]>=3.2
