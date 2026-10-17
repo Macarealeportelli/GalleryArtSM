@@ -7,3 +7,5 @@ __pycache__/
 backend/galeria.db
 backend/uploads/
 backend/admins.json
+
+.vercel
