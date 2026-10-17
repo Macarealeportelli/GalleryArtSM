@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 
 from .admins import sincronizar_admins
+from .almacenamiento import USA_BLOB
 from .config import CORS_ORIGINS, FRONTEND_DIST, UPLOAD_DIR
 from .database import Base, engine
 from .routers import auth, obras, usuarios
@@ -20,15 +21,25 @@ def migrar() -> None:
             con.execute(text("ALTER TABLE usuarios ADD COLUMN colegio VARCHAR(150)"))
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
+_inicializado = False
+
+
+def inicializar() -> None:
+    """Crea las tablas, aplica migraciones y sincroniza los administradores (una sola vez)."""
+    global _inicializado
+    if _inicializado:
+        return
     Base.metadata.create_all(engine)
     migrar()
     sincronizar_admins()
+    _inicializado = True
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    inicializar()
     yield
 
-
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Galería de Arte – Colegio San Marcos", lifespan=lifespan)
 
@@ -43,7 +54,11 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(obras.router)
 app.include_router(usuarios.router)
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+# Imágenes guardadas en la carpeta local (en Vercel se sirven directamente desde Vercel Blob)
+if not USA_BLOB:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 # Si el frontend está compilado (frontend/dist), se sirve desde el mismo servidor.

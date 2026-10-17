@@ -1,4 +1,4 @@
-"""Administradores fijos, definidos en admins.json.
+"""Administradores fijos, definidos en admins.json (o en la variable de entorno ADMINS_JSON).
 
 Al arrancar el servidor:
 - se crea cada administrador de la lista que no exista (o se convierte en admin si ya tenía cuenta),
@@ -10,8 +10,9 @@ import json
 import logging
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
-from .config import ADMINS_FILE
+from .config import ADMINS_FILE, ADMINS_JSON
 from .database import SessionLocal
 from .models import Usuario
 from .security import hash_password, verify_password
@@ -20,16 +21,23 @@ log = logging.getLogger("uvicorn.error")
 
 
 def leer_admins() -> list[dict]:
-    if not ADMINS_FILE.exists():
-        log.warning("No existe %s: no hay administradores definidos", ADMINS_FILE)
+    if ADMINS_JSON.strip():
+        origen, texto = "ADMINS_JSON", ADMINS_JSON
+    elif ADMINS_FILE.exists():
+        origen, texto = ADMINS_FILE.name, ADMINS_FILE.read_text(encoding="utf-8")
+    else:
+        log.warning("No hay administradores definidos (ni ADMINS_JSON ni %s)", ADMINS_FILE)
         return []
-    datos = json.loads(ADMINS_FILE.read_text(encoding="utf-8"))
+    try:
+        datos = json.loads(texto)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"{origen} no es un JSON válido: {e}") from e
     admins = []
     for a in datos:
         email = str(a.get("email", "")).strip().lower()
         password = str(a.get("password", ""))
         if not email or not password:
-            raise ValueError(f"{ADMINS_FILE.name}: cada administrador necesita email y password")
+            raise ValueError(f"{origen}: cada administrador necesita email y password")
         admins.append({"email": email, "password": password, "nombre": a.get("nombre") or email})
     return admins
 
@@ -52,5 +60,10 @@ def sincronizar_admins() -> None:
         for usuario in db.scalars(select(Usuario).where(Usuario.es_admin.is_(True))):
             if usuario.email.lower() not in emails:
                 usuario.es_admin = False
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            # En Vercel pueden arrancar dos instancias a la vez: la otra ya creó al administrador
+            db.rollback()
+            return
     log.info("Administradores sincronizados: %s", ", ".join(sorted(emails)) or "ninguno")

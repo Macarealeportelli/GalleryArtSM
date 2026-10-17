@@ -1,0 +1,9 @@
+# Archivos locales que nunca deben subirse a Vercel
+backend/.venv/
+backend/.env
+backend/admins.json
+backend/galeria.db
+backend/uploads/
+frontend/node_modules/
+frontend/dist/
+**/__pycache__/

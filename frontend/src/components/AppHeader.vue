@@ -5,6 +5,7 @@ import { auth, logout } from '../auth'
 
 const router = useRouter()
 const route = useRoute()
+const base = import.meta.env.BASE_URL
 const menuAbierto = ref(false)
 const conSombra = ref(false)
 
@@ -32,7 +33,7 @@ function salir() {
   <header class="cabecera" :class="{ conSombra }">
     <div class="contenedor barra">
       <RouterLink to="/" class="marca">
-        <img src="/escudo.png" alt="Escudo del Colegio San Marcos" width="42" height="54" />
+        <img :src="`${base}escudo.png`" alt="Escudo del Colegio San Marcos" width="42" height="54" />
         <span>
           <small>Colegio Privado San Marcos</small>
           <strong>Galería de Arte Virtual</strong>

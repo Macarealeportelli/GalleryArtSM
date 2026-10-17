@@ -2,7 +2,8 @@ import { auth, logout } from './auth'
 
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
-export const urlArchivo = (ruta) => BASE + ruta
+// Las imágenes en Vercel Blob ya vienen con su dirección completa
+export const urlArchivo = (ruta) => (/^https?:\/\//.test(ruta) ? ruta : BASE + ruta)
 
 export async function api(ruta, { method = 'GET', body, form } = {}) {
   const headers = {}

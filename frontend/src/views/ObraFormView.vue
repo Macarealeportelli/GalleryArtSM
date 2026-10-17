@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { api, urlArchivo } from '../api'
 import { auth, puedeGestionar } from '../auth'
 import Epigrafe from '../components/Epigrafe.vue'
+import { prepararImagen } from '../imagen'
 
 const props = defineProps({ id: { type: String, default: null } })
 const router = useRouter()
@@ -45,17 +46,25 @@ const enviando = ref(false)
 const cargando = ref(false)
 const sinPermiso = ref(false)
 
-const MAX_MB = 15
+const procesando = ref(false)
+// Los GIF no se achican (pueden ser animados) y Vercel acepta hasta 4,5 MB por envío
+const MAX_GIF_MB = 4
 
-function elegir(file) {
+async function elegir(file) {
   error.value = ''
   if (!file) return
   if (!file.type.startsWith('image/')) {
     error.value = 'El archivo debe ser una imagen (JPG, PNG, WEBP o GIF)'
     return
   }
-  if (file.size > MAX_MB * 1024 * 1024) {
-    error.value = `La imagen supera los ${MAX_MB} MB`
+  procesando.value = true
+  try {
+    file = await prepararImagen(file)
+  } finally {
+    procesando.value = false
+  }
+  if (file.type === 'image/gif' && file.size > MAX_GIF_MB * 1024 * 1024) {
+    error.value = `Los GIF pueden pesar hasta ${MAX_GIF_MB} MB`
     return
   }
   if (vistaPrevia.value.startsWith('blob:')) URL.revokeObjectURL(vistaPrevia.value)
@@ -146,14 +155,15 @@ onBeforeUnmount(() => {
         @drop.prevent="soltar"
       >
         <label class="selector">
-          <img v-if="vistaPrevia" :src="vistaPrevia" alt="Vista previa" />
+          <span v-if="procesando" class="indicacion"><strong>Optimizando imagen…</strong></span>
+          <img v-else-if="vistaPrevia" :src="vistaPrevia" alt="Vista previa" />
           <span v-else class="indicacion">
             <span class="icono">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
             </span>
             <strong>Arrastrá la imagen aquí</strong>
             o tocá para elegirla / sacar una foto
-            <small>JPG, PNG, WEBP o GIF · hasta {{ MAX_MB }} MB</small>
+            <small>JPG, PNG, WEBP o GIF · las fotos grandes se optimizan solas</small>
           </span>
           <input type="file" accept="image/*" @change="elegir($event.target.files[0])" />
         </label>
@@ -222,7 +232,7 @@ onBeforeUnmount(() => {
 
         <div class="botones">
           <RouterLink to="/" class="btn btn-borde">Cancelar</RouterLink>
-          <button class="btn btn-primario" :disabled="enviando">
+          <button class="btn btn-primario" :disabled="enviando || procesando">
             {{ enviando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Publicar obra' }}
           </button>
         </div>

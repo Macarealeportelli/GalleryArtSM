@@ -6,7 +6,8 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from ..config import MAX_UPLOAD_MB, UPLOAD_DIR
+from .. import almacenamiento
+from ..config import MAX_UPLOAD_MB
 from ..database import get_db
 from ..models import Obra, Usuario
 from ..schemas import FiltrosOut, ObraOut
@@ -14,7 +15,12 @@ from ..security import usuario_habilitado
 
 router = APIRouter(prefix="/api/obras", tags=["obras"])
 
-FORMATOS = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp", "GIF": ".gif"}
+FORMATOS = {
+    "JPEG": (".jpg", "image/jpeg"),
+    "PNG": (".png", "image/png"),
+    "WEBP": (".webp", "image/webp"),
+    "GIF": (".gif", "image/gif"),
+}
 TAMANO_MINIATURA = (900, 900)
 
 
@@ -27,8 +33,8 @@ def a_salida(obra: Obra) -> ObraOut:
         anio=obra.anio,
         tecnica=obra.tecnica,
         colegio=obra.colegio,
-        imagen_url=f"/uploads/{obra.imagen}",
-        miniatura_url=f"/uploads/{obra.miniatura}",
+        imagen_url=almacenamiento.url_publica(obra.imagen),
+        miniatura_url=almacenamiento.url_publica(obra.miniatura),
         subido_por=obra.subido_por.nombre if obra.subido_por else None,
         creado=obra.creado,
         actualizado=obra.actualizado,
@@ -59,11 +65,8 @@ def guardar_imagen(archivo: UploadFile) -> tuple[str, str]:
     if formato not in FORMATOS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Formato no admitido (usar JPG, PNG, WEBP o GIF)")
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     base = uuid.uuid4().hex
-    original = f"{base}{FORMATOS[formato]}"
-    miniatura = f"{base}_mini.jpg"
-    (UPLOAD_DIR / original).write_bytes(datos)
+    extension, tipo = FORMATOS[formato]
 
     img = ImageOps.exif_transpose(img)
     img.thumbnail(TAMANO_MINIATURA)
@@ -74,13 +77,20 @@ def guardar_imagen(archivo: UploadFile) -> tuple[str, str]:
         img = fondo
     elif img.mode != "RGB":
         img = img.convert("RGB")
-    img.save(UPLOAD_DIR / miniatura, "JPEG", quality=82, optimize=True)
+    salida = io.BytesIO()
+    img.save(salida, "JPEG", quality=82, optimize=True)
+
+    try:
+        original = almacenamiento.guardar(f"{base}{extension}", datos, tipo)
+        miniatura = almacenamiento.guardar(f"{base}_mini.jpg", salida.getvalue(), "image/jpeg")
+    except (RuntimeError, OSError):
+        almacenamiento.log.exception("Error al guardar la imagen")
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "No se pudo guardar la imagen. Probá de nuevo en unos minutos")
     return original, miniatura
 
 
-def borrar_archivos(*nombres: str) -> None:
-    for nombre in nombres:
-        (UPLOAD_DIR / nombre).unlink(missing_ok=True)
+def borrar_archivos(*referencias: str) -> None:
+    almacenamiento.borrar(*referencias)
 
 
 def obtener(db: Session, obra_id: int) -> Obra:
