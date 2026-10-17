@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from PIL import Image, ImageOps, UnidentifiedImageError
-from sqlalchemy import func, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .. import almacenamiento
@@ -143,10 +143,11 @@ def listar(
 
 @router.get("/filtros", response_model=FiltrosOut)
 def filtros(db: Session = Depends(get_db)):
+    # Se ordena en Python: PostgreSQL no permite DISTINCT con ORDER BY lower(...)
     return FiltrosOut(
-        tecnicas=list(db.scalars(select(Obra.tecnica).distinct().order_by(func.lower(Obra.tecnica)))),
-        colegios=list(db.scalars(select(Obra.colegio).distinct().order_by(func.lower(Obra.colegio)))),
-        anios=list(db.scalars(select(Obra.anio).distinct().order_by(Obra.anio.desc()))),
+        tecnicas=sorted(db.scalars(select(Obra.tecnica).distinct()), key=str.casefold),
+        colegios=sorted(db.scalars(select(Obra.colegio).distinct()), key=str.casefold),
+        anios=sorted(db.scalars(select(Obra.anio).distinct()), reverse=True),
     )
 
 
