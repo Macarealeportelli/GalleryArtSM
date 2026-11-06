@@ -35,6 +35,17 @@ const grupos = computed(() => {
   const busqueda = normalizar(artistaBuscado.value)
   return [...porArtista.values()]
     .filter((grupo) => normalizar(grupo.artista).includes(busqueda))
+    .map((grupo) => ({
+      ...grupo,
+      colegios: [...new Set(grupo.obras.map((obra) => obra.colegio))].sort((a, b) =>
+        a.localeCompare(b, 'es', { sensitivity: 'base' })
+      ),
+      titulos: grupo.obras.map((obra) => obra.titulo || 'Sin título'),
+      anios: [...new Set(grupo.obras.map((obra) => obra.anio))].sort((a, b) => b - a),
+      tecnicas: [...new Set(grupo.obras.map((obra) => obra.tecnica))].sort((a, b) =>
+        a.localeCompare(b, 'es', { sensitivity: 'base' })
+      )
+    }))
     .sort((a, b) => a.artista.localeCompare(b.artista, 'es', { sensitivity: 'base' }))
 })
 
@@ -143,6 +154,36 @@ onMounted(cargar)
         <h2>{{ grupo.artista }}</h2>
         <span>{{ grupo.obras.length }} {{ grupo.obras.length === 1 ? 'obra' : 'obras' }}</span>
       </header>
+
+      <div class="ficha-artista">
+        <h3>Datos del artista</h3>
+        <dl>
+          <div>
+            <dt>Nombre y apellido</dt>
+            <dd>{{ grupo.artista }}</dd>
+          </div>
+          <div>
+            <dt>Colegio(s)</dt>
+            <dd>{{ grupo.colegios.join(', ') }}</dd>
+          </div>
+          <div>
+            <dt>Cantidad de obras</dt>
+            <dd>{{ grupo.obras.length }}</dd>
+          </div>
+          <div>
+            <dt>Títulos</dt>
+            <dd>{{ grupo.titulos.join(' · ') }}</dd>
+          </div>
+          <div>
+            <dt>Años</dt>
+            <dd>{{ grupo.anios.join(', ') }}</dd>
+          </div>
+          <div>
+            <dt>Técnicas</dt>
+            <dd>{{ grupo.tecnicas.join(', ') }}</dd>
+          </div>
+        </dl>
+      </div>
 
       <article v-for="obra in grupo.obras" :key="obra.id" class="tarjeta obra-proceso">
         <div class="obra-final">
@@ -259,6 +300,36 @@ onMounted(cargar)
 .cabecera-artista h2 {
   font-size: 1.6rem;
   margin: 0 0 0.8rem;
+}
+.ficha-artista {
+  margin-bottom: 1rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--superficie);
+}
+.ficha-artista h3 {
+  margin: 0 0 0.6rem;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+}
+.ficha-artista dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.6rem 1.25rem;
+  margin: 0;
+}
+.ficha-artista dl div {
+  min-width: 0;
+}
+.ficha-artista dt {
+  color: var(--texto-suave);
+  font-size: 0.78rem;
+}
+.ficha-artista dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
 }
 .obra-proceso {
   display: grid;
