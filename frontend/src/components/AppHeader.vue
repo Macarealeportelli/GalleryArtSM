@@ -53,6 +53,7 @@ function salir() {
       <nav :class="{ abierto: menuAbierto }">
         <div class="enlaces">
           <RouterLink to="/">Galería</RouterLink>
+          <RouterLink to="/proceso">Proceso de obra</RouterLink>
           <RouterLink v-if="auth.esAdmin" to="/usuarios">Usuarios</RouterLink>
         </div>
 

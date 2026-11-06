@@ -1,6 +1,7 @@
+import unicodedata
 from datetime import datetime, timezone
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -37,6 +38,12 @@ class Usuario(Base):
         return self.puede_editar and mismo_colegio(self.colegio, colegio)
 
 
+def clave_orden(texto: str) -> str:
+    """Clave para ordenar alfabéticamente en español: sin tildes ni mayúsculas (Álvarez antes que Zapata)."""
+    sin_tildes = unicodedata.normalize("NFKD", texto)
+    return "".join(c for c in sin_tildes if not unicodedata.combining(c)).casefold()
+
+
 def mismo_colegio(a: str | None, b: str | None) -> bool:
     return bool(a and b) and " ".join(a.split()).casefold() == " ".join(b.split()).casefold()
 
@@ -56,7 +63,32 @@ class Obra(Base):
     subido_por_id: Mapped[int | None] = mapped_column(
         ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True
     )
+    # Texto opcional sobre cómo se hizo la obra
+    proceso_descripcion: Mapped[str | None] = mapped_column(Text, nullable=True)
     creado: Mapped[datetime] = mapped_column(default=ahora)
     actualizado: Mapped[datetime] = mapped_column(default=ahora, onupdate=ahora)
 
     subido_por: Mapped[Usuario | None] = relationship()
+    proceso: Mapped[list["ImagenProceso"]] = relationship(
+        back_populates="obra", cascade="all, delete-orphan", order_by="ImagenProceso.orden"
+    )
+
+    @property
+    def alumno(self) -> str:
+        return f"{self.autor_nombre} {self.autor_apellido}"
+
+
+class ImagenProceso(Base):
+    """Foto del proceso de trabajo de una obra (bocetos, etapas intermedias)."""
+
+    __tablename__ = "proceso_imagenes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    obra_id: Mapped[int] = mapped_column(ForeignKey("obras.id", ondelete="CASCADE"), index=True)
+    imagen: Mapped[str] = mapped_column(String(255))
+    miniatura: Mapped[str] = mapped_column(String(255))
+    descripcion: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    orden: Mapped[int] = mapped_column(default=0)
+    creado: Mapped[datetime] = mapped_column(default=ahora)
+
+    obra: Mapped[Obra] = relationship(back_populates="proceso")

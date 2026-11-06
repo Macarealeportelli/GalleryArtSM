@@ -30,6 +30,12 @@ Los administradores no se crean desde la página: los define el colegio. Una cue
   - por colegio y por año, con listas desplegables.
 - **Contador** de obras encontradas y botón para limpiar los filtros.
 
+### Proceso de obra
+
+- Sección pública para buscar artistas y ver juntas todas las obras que tengan el mismo nombre de autor.
+- Cada obra muestra sus imágenes de proceso y sus descripciones junto a la obra final.
+- Los usuarios habilitados con permiso sobre el colegio pueden cargar hasta 12 imágenes de proceso por obra, con una descripción opcional. Se aceptan imágenes JPG, PNG, WEBP o GIF.
+
 ### Visor de obras
 
 Al tocar una obra se abre en pantalla completa:

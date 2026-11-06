@@ -41,6 +41,17 @@ class UsuarioUpdate(BaseModel):
     colegio: str | None = Field(default=None, min_length=2, max_length=150)
 
 
+class ImagenProcesoOut(BaseModel):
+    id: int
+    imagen_url: str
+    miniatura_url: str
+    descripcion: str | None
+
+
+class ProcesoUpdate(BaseModel):
+    descripcion: str | None = Field(default=None, max_length=300)
+
+
 class ObraOut(BaseModel):
     id: int
     titulo: str | None
@@ -52,11 +63,14 @@ class ObraOut(BaseModel):
     imagen_url: str
     miniatura_url: str
     subido_por: str | None
+    proceso_descripcion: str | None
+    proceso: list[ImagenProcesoOut]
     creado: datetime
     actualizado: datetime
 
 
 class FiltrosOut(BaseModel):
+    alumnos: list[str]
     tecnicas: list[str]
     colegios: list[str]
     anios: list[int]

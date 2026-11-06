@@ -4,6 +4,7 @@ import GaleriaView from './views/GaleriaView.vue'
 
 const routes = [
   { path: '/', name: 'galeria', component: GaleriaView },
+  { path: '/proceso', name: 'proceso', component: () => import('./views/ProcesoView.vue') },
   { path: '/ingresar', name: 'login', component: () => import('./views/LoginView.vue') },
   { path: '/registro', name: 'registro', component: () => import('./views/RegistroView.vue') },
   {

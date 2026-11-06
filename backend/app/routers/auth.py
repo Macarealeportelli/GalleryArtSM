@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Obra, Usuario
+from ..models import Obra, Usuario, clave_orden
 from ..schemas import LoginIn, RegistroIn, TokenOut, UsuarioOut
 from ..security import crear_token, hash_password, usuario_actual, verify_password
 
@@ -53,4 +53,4 @@ def colegios(db: Session = Depends(get_db)):
     nombres = set(db.scalars(select(Obra.colegio).distinct()))
     nombres |= set(db.scalars(select(Usuario.colegio).where(Usuario.colegio.is_not(None)).distinct()))
     unicos = {n.casefold(): n for n in sorted(nombres)}
-    return sorted(unicos.values(), key=str.casefold)
+    return sorted(unicos.values(), key=clave_orden)

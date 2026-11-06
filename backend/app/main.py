@@ -14,12 +14,20 @@ from .database import Base, engine
 from .routers import auth, obras, usuarios
 
 
+# Columnas agregadas después de la primera versión: (tabla, columna, tipo SQL)
+COLUMNAS_NUEVAS = [
+    ("usuarios", "colegio", "VARCHAR(150)"),
+    ("obras", "proceso_descripcion", "TEXT"),
+]
+
+
 def migrar() -> None:
     """Agrega columnas nuevas a bases de datos creadas con versiones anteriores."""
-    columnas = {c["name"] for c in inspect(engine).get_columns("usuarios")}
-    if "colegio" not in columnas:
-        with engine.begin() as con:
-            con.execute(text("ALTER TABLE usuarios ADD COLUMN colegio VARCHAR(150)"))
+    inspector = inspect(engine)
+    for tabla, columna, tipo in COLUMNAS_NUEVAS:
+        if columna not in {c["name"] for c in inspector.get_columns(tabla)}:
+            with engine.begin() as con:
+                con.execute(text(f"ALTER TABLE {tabla} ADD COLUMN {columna} {tipo}"))
 
 
 _inicializado = False
