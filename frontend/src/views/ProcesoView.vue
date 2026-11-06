@@ -44,6 +44,9 @@ const grupos = computed(() => {
       anios: [...new Set(grupo.obras.map((obra) => obra.anio))].sort((a, b) => b - a),
       tecnicas: [...new Set(grupo.obras.map((obra) => obra.tecnica))].sort((a, b) =>
         a.localeCompare(b, 'es', { sensitivity: 'base' })
+      ),
+      procesos: grupo.obras.flatMap((obra) =>
+        obra.proceso.map((etapa) => ({ obra, etapa }))
       )
     }))
     .sort((a, b) => a.artista.localeCompare(b.artista, 'es', { sensitivity: 'base' }))
@@ -199,22 +202,7 @@ onMounted(cargar)
         </div>
 
         <div class="etapas">
-          <h3>Etapas del proceso <span>({{ obra.proceso.length }}/12)</span></h3>
-          <div v-if="obra.proceso.length" class="grilla-etapas">
-            <a
-              v-for="etapa in obra.proceso"
-              :key="etapa.id"
-              class="etapa"
-              :href="urlArchivo(etapa.imagen_url)"
-              target="_blank"
-              rel="noopener"
-            >
-              <img :src="urlArchivo(etapa.miniatura_url)" :alt="etapa.descripcion || 'Imagen del proceso'" loading="lazy" />
-              <span v-if="etapa.descripcion">{{ etapa.descripcion }}</span>
-            </a>
-          </div>
-          <p v-else class="sin-etapas">Todavía no se cargaron imágenes del proceso.</p>
-
+          <h3>Proceso de esta obra <span>({{ obra.proceso.length }}/12 etapas)</span></h3>
           <button
             v-if="puedeGestionar(obra) && obra.proceso.length < 12"
             class="btn btn-borde btn-chico"
@@ -248,6 +236,28 @@ onMounted(cargar)
           </form>
         </div>
       </article>
+
+      <section class="procesos-artista" :aria-label="`Procesos de ${grupo.artista}`">
+        <header>
+          <h3>Todos los procesos de {{ grupo.artista }}</h3>
+          <span>{{ grupo.procesos.length }} {{ grupo.procesos.length === 1 ? 'etapa' : 'etapas' }}</span>
+        </header>
+        <div v-if="grupo.procesos.length" class="grilla-etapas">
+          <a
+            v-for="{ obra, etapa } in grupo.procesos"
+            :key="etapa.id"
+            class="etapa"
+            :href="urlArchivo(etapa.imagen_url)"
+            target="_blank"
+            rel="noopener"
+          >
+            <img :src="urlArchivo(etapa.miniatura_url)" :alt="etapa.descripcion || `Proceso de ${obra.titulo || 'obra sin título'}`" loading="lazy" />
+            <span class="etapa-obra">{{ obra.titulo || 'Sin título' }} · {{ obra.anio }}</span>
+            <span v-if="etapa.descripcion" class="etapa-descripcion">{{ etapa.descripcion }}</span>
+          </a>
+        </div>
+        <p v-else class="sin-etapas">Todavía no se cargaron imágenes de proceso para este artista.</p>
+      </section>
     </section>
   </div>
 </template>
@@ -359,29 +369,64 @@ onMounted(cargar)
   margin-top: 0.75rem;
   color: var(--texto);
 }
-.etapas h3 {
+.etapas h3,
+.procesos-artista h3 {
   margin: 0 0 0.75rem;
   font-family: var(--sans);
   font-size: 0.95rem;
 }
-.grilla-etapas {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 0.75rem;
+.procesos-artista {
+  margin: 1.25rem 0 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+}
+.procesos-artista > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 0.9rem;
 }
+.procesos-artista > header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.procesos-artista > header span {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+.grilla-etapas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
 .etapa {
+  min-width: 0;
   color: var(--texto);
   font-size: 0.8rem;
   text-decoration: none;
 }
 .etapa img {
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: var(--radio-chico);
   background: var(--fondo);
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.4rem;
+}
+.etapa-obra,
+.etapa-descripcion {
+  display: block;
+}
+.etapa-obra {
+  font-weight: 600;
+}
+.etapa-descripcion {
+  margin-top: 0.15rem;
+  color: var(--texto-suave);
+  overflow-wrap: anywhere;
 }
 .sin-etapas,
 .ayuda {

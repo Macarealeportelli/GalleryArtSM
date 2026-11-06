@@ -33,7 +33,7 @@ Los administradores no se crean desde la página: los define el colegio. Una cue
 ### Proceso de obra
 
 - Sección pública para buscar artistas y ver juntas todas las obras que tengan el mismo nombre de autor.
-- Cada obra muestra sus imágenes de proceso y sus descripciones junto a la obra final.
+- Las imágenes de proceso de todas las obras de cada artista se reúnen en una galería, identificadas por título y año de la obra.
 - Los usuarios habilitados con permiso sobre el colegio pueden cargar hasta 12 imágenes de proceso por obra, con una descripción opcional. Se aceptan imágenes JPG, PNG, WEBP o GIF.
 
 ### Visor de obras
