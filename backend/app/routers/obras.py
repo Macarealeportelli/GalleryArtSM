@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from PIL import Image, ImageOps, UnidentifiedImageError
-from sqlalchemy import or_, select
+from sqlalchemy import case, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from .. import almacenamiento
@@ -143,7 +143,10 @@ def listar(
     consulta = (
         select(Obra)
         .options(selectinload(Obra.proceso), selectinload(Obra.subido_por))
-        .order_by(Obra.creado.desc())
+        .order_by(
+            case((Obra.colegio.ilike("%colegio privado San Marcos%"), 0), else_=1),
+            Obra.creado.desc(),
+        )
     )
     if q:
         patron = f"%{q.strip()}%"
