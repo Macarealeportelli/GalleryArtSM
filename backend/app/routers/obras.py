@@ -144,7 +144,16 @@ def listar(
         select(Obra)
         .options(selectinload(Obra.proceso), selectinload(Obra.subido_por))
         .order_by(
-            case((Obra.colegio.ilike("%colegio privado San Marcos%"), 0), else_=1),
+            case(
+                (
+                    or_(
+                        Obra.colegio.ilike("%colegio san marcos%"),
+                        Obra.colegio.ilike("%colegio privado san marcos%"),
+                    ),
+                    0,
+                ),
+                else_=1,
+            ),
             Obra.creado.desc(),
         )
     )
